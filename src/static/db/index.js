@@ -1,0 +1,96 @@
+
+import syncDB from './sync'
+import usersDB from './users'
+import settingsDB from './settings'
+import secretsDB from './secrets'
+import basicsDB from './basics'
+import utils from './utils'
+import vault from 'src/static/vault'
+import tables from './tables'
+
+function open (appState) {
+  var db = window.sqlitePlugin.openDatabase({
+    name: 'vaultmobile.db',
+    location: 'default'
+  })
+
+  utils.initUtils(db)
+  vault.init(appState)
+}
+
+var populateDB = utils.transactionDecorator(({ tx }) => {
+  tx.executeSql('PRAGMA foreign_keys=ON ')
+
+  // tx.executeSql('UPDATE settings set lastSyncTime = 0')
+  // tx.executeSql('DROP TABLE secret_values')
+  // tx.executeSql('DROP TABLE secrets')
+  // tx.executeSql('DROP TABLE settings')
+  // tx.executeSql('DROP TABLE users')
+  // tx.executeSql('DROP TABLE fingerprints')
+
+  var fieldStrings = getTableString(tables.users)
+  tx.executeSql('CREATE TABLE IF NOT EXISTS users (' + fieldStrings.join(', ') + ')')
+
+  fieldStrings = getTableString(tables.secrets)
+  tx.executeSql('CREATE TABLE IF NOT EXISTS secrets (' + fieldStrings.join(', ') + ')')
+
+  fieldStrings = getTableString(tables.secret_values)
+  tx.executeSql('CREATE TABLE IF NOT EXISTS secret_values (' + fieldStrings.join(', ') + ')')
+
+  fieldStrings = getTableString(tables.settings)
+  tx.executeSql('CREATE TABLE IF NOT EXISTS settings (' + fieldStrings.join(', ') + ')')
+
+  fieldStrings = getTableString(tables.fingerprints)
+  tx.executeSql('CREATE TABLE IF NOT EXISTS fingerprints (' + fieldStrings.join(', ') + ')')
+})
+
+function getTableString (table) {
+  var keys = Object.keys(table)
+  var fieldStrings = []
+  var foreignKeys = []
+
+  for (var i = 0; i < keys.length; i++) {
+    var initStr = keys[i]
+
+    var fieldKeys = Object.keys(table[keys[i]])
+
+    if (fieldKeys.includes('type')) {
+      initStr += ' ' + table[keys[i]].type
+    } else {
+      initStr += ' varchar'
+    }
+
+    if (fieldKeys.includes('not_null')) {
+      initStr += ' NOT NULL'
+    } else if (fieldKeys.includes('default')) {
+      initStr += ' DEFAULT ' + table[keys[i]].default
+    }
+
+    if (fieldKeys.includes('primary_key') && table[keys[i]].primary_key) {
+      initStr += ' primary key'
+      if (fieldKeys.includes('type') && table[keys[i]].primary_key === 'integer') {
+        initStr += ' auto increment'
+      }
+    } else if (fieldKeys.includes('unique') && table[keys[i]].unique) {
+      initStr += ' unique'
+    }
+
+    fieldStrings.push(initStr)
+    if (fieldKeys.includes('foreign_key')) {
+      foreignKeys.push('FOREIGN KEY(' + keys[i] + ') REFERENCES ' + table[keys[i]].foreign_key.table + '(' + table[keys[i]].foreign_key.field + ')')
+    }
+  }
+
+  return fieldStrings.concat(foreignKeys)
+}
+
+export default {
+  open,
+  populateDB,
+  ...syncDB,
+  ...basicsDB,
+  ...secretsDB,
+  ...settingsDB,
+  ...usersDB,
+  ...utils
+}

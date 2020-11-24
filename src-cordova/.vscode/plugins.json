@@ -1,0 +1,1 @@
+{"plugins":["cordova-plugin-whitelist","cordova-plugin-fingerprint-aio","cordova-sqlite-storage"]}

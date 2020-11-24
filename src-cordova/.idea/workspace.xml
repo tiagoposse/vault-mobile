@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="fbd4891f-a4f0-4ecb-9173-162c75f98321" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/../src/pages/Auth.vue" beforeDir="false" afterPath="$PROJECT_DIR$/../src/pages/Auth.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../src/pages/Settings.vue" beforeDir="false" afterPath="$PROJECT_DIR$/../src/pages/Settings.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../src/static/db/users.js" beforeDir="false" afterPath="$PROJECT_DIR$/../src/static/db/users.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../src/store/global/mutations.js" beforeDir="false" afterPath="$PROJECT_DIR$/../src/store/global/mutations.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../src/store/global/state.js" beforeDir="false" afterPath="$PROJECT_DIR$/../src/store/global/state.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../src/store/settings/actions.js" beforeDir="false" afterPath="$PROJECT_DIR$/../src/store/settings/actions.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../src/store/settings/mutations.js" beforeDir="false" afterPath="$PROJECT_DIR$/../src/store/settings/mutations.js" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../../.." />
+  </component>
+  <component name="ProjectId" id="1kPNFjFKCDAhE3L6Mk4vyFTtWMr" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="android.sdk.path" value="$USER_HOME$/Library/Android/sdk" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="settings.editor.selected.configurable" value="emulator" />
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="fbd4891f-a4f0-4ecb-9173-162c75f98321" name="Default Changelist" comment="" />
+      <created>1605598164264</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1605598164264</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="744" y="374" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1605599314883">
+      <screen x="0" y="23" width="2560" height="1379" />
+    </state>
+    <state x="744" y="374" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.23.2560.1379@0.23.2560.1379" timestamp="1605599314883" />
+    <state x="680" y="312" width="1200" height="800" key="AVDManager" timestamp="1605599316737">
+      <screen x="0" y="23" width="2560" height="1379" />
+    </state>
+    <state x="680" y="312" width="1200" height="800" key="AVDManager/0.23.2560.1379@0.23.2560.1379" timestamp="1605599316737" />
+    <state width="1379" height="225" key="GridCell.Tab.0.bottom" timestamp="1605603308932">
+      <screen x="0" y="23" width="1536" height="899" />
+    </state>
+    <state width="1379" height="225" key="GridCell.Tab.0.bottom/0.23.1536.899@0.23.1536.899" timestamp="1605603308932" />
+    <state width="1379" height="225" key="GridCell.Tab.0.center" timestamp="1605603308932">
+      <screen x="0" y="23" width="1536" height="899" />
+    </state>
+    <state width="1379" height="225" key="GridCell.Tab.0.center/0.23.1536.899@0.23.1536.899" timestamp="1605603308932" />
+    <state width="1379" height="225" key="GridCell.Tab.0.left" timestamp="1605603308931">
+      <screen x="0" y="23" width="1536" height="899" />
+    </state>
+    <state width="1379" height="225" key="GridCell.Tab.0.left/0.23.1536.899@0.23.1536.899" timestamp="1605603308931" />
+    <state width="1379" height="225" key="GridCell.Tab.0.right" timestamp="1605603308932">
+      <screen x="0" y="23" width="1536" height="899" />
+    </state>
+    <state width="1379" height="225" key="GridCell.Tab.0.right/0.23.1536.899@0.23.1536.899" timestamp="1605603308932" />
+    <state width="1379" height="225" key="GridCell.Tab.1.bottom" timestamp="1605603308933">
+      <screen x="0" y="23" width="1536" height="899" />
+    </state>
+    <state width="1379" height="225" key="GridCell.Tab.1.bottom/0.23.1536.899@0.23.1536.899" timestamp="1605603308933" />
+    <state width="1379" height="225" key="GridCell.Tab.1.center" timestamp="1605603308932">
+      <screen x="0" y="23" width="1536" height="899" />
+    </state>
+    <state width="1379" height="225" key="GridCell.Tab.1.center/0.23.1536.899@0.23.1536.899" timestamp="1605603308932" />
+    <state width="1379" height="225" key="GridCell.Tab.1.left" timestamp="1605603308932">
+      <screen x="0" y="23" width="1536" height="899" />
+    </state>
+    <state width="1379" height="225" key="GridCell.Tab.1.left/0.23.1536.899@0.23.1536.899" timestamp="1605603308932" />
+    <state width="1379" height="225" key="GridCell.Tab.1.right" timestamp="1605603308932">
+      <screen x="0" y="23" width="1536" height="899" />
+    </state>
+    <state width="1379" height="225" key="GridCell.Tab.1.right/0.23.1536.899@0.23.1536.899" timestamp="1605603308932" />
+    <state x="781" y="351" key="SettingsEditor" timestamp="1606127435812">
+      <screen x="0" y="23" width="2560" height="1381" />
+    </state>
+    <state x="781" y="351" key="SettingsEditor/0.23.2560.1379@0.23.2560.1379" timestamp="1605598412269" />
+    <state x="781" y="351" key="SettingsEditor/0.23.2560.1381@0.23.2560.1381" timestamp="1606127435812" />
+  </component>
+</project>
