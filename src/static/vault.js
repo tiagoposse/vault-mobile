@@ -1,66 +1,99 @@
 import axios from 'axios'
 
-var state
-
-function init (appState) {
-  state = appState
-}
-
-function getSecret (path, onSuccess, onFail) {
-  axios.get(state.settings.vault_addr + '/v1/' + state.settings.vault_engine + '/data' + path)
-    .then((response) => {
-      onSuccess(response.data.data)
-    })
-    .catch(onFail)
-}
-
-function login (username, password, onSuccess, onError) {
-  axios.post(state.settings.vault_addr + '/v1/auth/userpass/login/' + username, {
-    password
+function _callVault ({ vault, path, onSuccess, onError, data = {}, method = 'GET' }) {
+  axios({
+    method,
+    url: vault.address + '/v1/' + path,
+    headers: {
+      'X-VAULT-TOKEN': vault.token
+    },
+    data
   })
-    .then((resp) => {
-      onSuccess(resp.data.auth.client_token)
-    })
+    .then(onSuccess)
     .catch(onError)
 }
 
-// function getSecretMetadata (path, onSuccess, onFail) {
-//   axios.get(state.settings.vault_addr + '/v1/' + state.settings.vault_engine + '/metadata' + path)
-//     .then((response) => {
-//       onSuccess(response.data.data)
-//     })
-//     .catch(onFail)
-// }
+function listVaultEngines (vault, onSuccess, onError) {
+  _callVault({
+    vault,
+    path: 'sys/mounts',
+    onSuccess: (response) => {
+      var engines = []
+      var excludedEngines = ['cubbyhole/', 'identity/', 'sys/']
+      for (const name in response.data.data) {
+        if (!excludedEngines.includes(name)) {
+          engines.push(name.substring(0, name.length - 1))
+        }
+      }
 
-function listVaultSecrets (path, onSuccess, onFail) {
-  axios({
-    method: 'list',
-    url: state.settings.vault_addr + '/v1/' + state.settings.vault_engine + '/metadata' + path
+      onSuccess(engines)
+    },
+    onError
   })
-    .then((response) => {
+}
+
+function getSecret (vault, path, onSuccess, onError) {
+  _callVault({
+    vault,
+    path: vault.engine + '/data' + path,
+    onSuccess: (response) => {
+      onSuccess(response.data.data)
+    },
+    onError
+  })
+}
+
+function login ({ address, username, password, onSuccess, onError }) {
+  _callVault({
+    vault: {
+      address,
+      token: ''
+    },
+    path: 'auth/userpass/login/' + username,
+    method: 'POST',
+    data: { password },
+    onSuccess: (resp) => {
+      onSuccess(resp.data.auth.client_token)
+    },
+    onError
+  })
+}
+
+function listVaultSecrets (vault, path, onSuccess, onFail) {
+  _callVault({
+    vault,
+    path: vault.engine + '/metadata' + path,
+    method: 'LIST',
+    onSuccess: (response) => {
       onSuccess(response.data.data.keys)
-    })
-    .catch(onFail)
-}
-
-function writeOrUpdateSecret (item, onSuccess, onFail) {
-  axios.post(state.settings.vault_addr + '/v1/' + state.settings.vault_engine + '/data' + item.path, {
-    data: item.data
+    },
+    onError: onFail
   })
-    .then((resp) => {
-      onSuccess()
-    })
-    .catch(onFail)
 }
 
-function deleteSecret (path, onSuccess, onFail) {
-  axios.delete(state.settings.vault_addr + '/v1/' + state.settings.vault_engine + '/metadata' + path)
-    .then(onSuccess)
-    .catch(onFail)
+function writeOrUpdateSecret (vault, data, onSuccess, onError) {
+  _callVault({
+    vault,
+    path: vault.engine + '/metadata' + data.path,
+    method: 'POST',
+    data,
+    onSuccess,
+    onError
+  })
 }
 
-function getSecretsForPath (remainingKeys, secrets, fn, onFinish) {
-  listVaultSecrets(remainingKeys[0], (keys) => {
+function deleteSecret (vault, path, onSuccess, onError) {
+  _callVault({
+    vault,
+    path: vault.engine + '/metadata' + path,
+    method: 'DELETE',
+    onSuccess,
+    onError
+  })
+}
+
+function getSecretsForPath (vault, remainingKeys, secrets, fn, onFinish) {
+  listVaultSecrets(vault, remainingKeys[0], (keys) => {
     for (var i = 0; i < keys.length; i++) {
       if (keys[i].charAt(keys[i].length - 1) === '/') {
         remainingKeys.push(remainingKeys[0] + keys[i])
@@ -81,21 +114,24 @@ function getSecretsForPath (remainingKeys, secrets, fn, onFinish) {
   })
 }
 
-function readVaultSecrets (name, onSuccess, onFail) {
-  axios.get(state.settings.vault_addr + '/v1/' + state.settings.vault_engine + '/data/' + name)
-    .then((response) => {
+function readVaultSecrets (vault, path, onSuccess, onError) {
+  _callVault({
+    vault,
+    path: vault.engine + '/data' + path,
+    onSuccess: (response) => {
       onSuccess(response.data.data)
-    })
-    .catch(onFail)
+    },
+    onError
+  })
 }
 
-function getDataRecursive (remainingSecrets, populated, fn, onSuccess) {
-  getSecret(remainingSecrets[0], (data) => {
+function getDataRecursive (vault, remainingSecrets, populated, fn, onSuccess) {
+  getSecret(vault, remainingSecrets[0], (data) => {
     populated[remainingSecrets[0]] = data
     remainingSecrets.shift()
 
     if (remainingSecrets.length > 0) {
-      fn(remainingSecrets, populated, fn, onSuccess)
+      fn(vault, remainingSecrets, populated, fn, onSuccess)
     } else {
       onSuccess(populated)
     }
@@ -103,7 +139,7 @@ function getDataRecursive (remainingSecrets, populated, fn, onSuccess) {
     remainingSecrets.shift()
 
     if (remainingSecrets.length > 0) {
-      fn(remainingSecrets, populated, fn, onSuccess)
+      fn(vault, remainingSecrets, populated, fn, onSuccess)
     } else {
       onSuccess(populated)
     }
@@ -111,12 +147,12 @@ function getDataRecursive (remainingSecrets, populated, fn, onSuccess) {
   })
 }
 
-function getAllSecrets (onSuccess) {
-  getSecretsForPath(['/'], [], getSecretsForPath, (secrets) => {
+function getSecretsForKV (vault, onSuccess) {
+  getSecretsForPath(vault, ['/'], [], getSecretsForPath, (secrets) => {
     if (secrets.length === 0) {
       onSuccess({})
     } else {
-      getDataRecursive(secrets, {}, getDataRecursive, (secretsWithData) => {
+      getDataRecursive(vault, secrets, {}, getDataRecursive, (secretsWithData) => {
         onSuccess(secretsWithData)
       })
     }
@@ -125,10 +161,10 @@ function getAllSecrets (onSuccess) {
 
 export default {
   getSecret,
-  getAllSecrets,
+  getSecretsForKV,
   readVaultSecrets,
   writeOrUpdateSecret,
   deleteSecret,
-  init,
+  listVaultEngines,
   login
 }

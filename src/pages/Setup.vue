@@ -4,11 +4,19 @@
       <q-form
         @submit="do_setup"
         @reset="reset"
-        class="q-gutter-md col-2"
+        class="q-gutter-md sm-col-2"
       >
         <q-input
           filled
-          v-model="vault_addr"
+          v-model="name"
+          label="Name"
+          lazy-rules
+          :rules="[ val => val && val.length > 0 || 'Please type something']"
+        />
+
+        <q-input
+          filled
+          v-model="vaultAddr"
           label="Vault Address"
           lazy-rules
           :rules="[ val => val && val.length > 0 || 'Please type something']"
@@ -16,8 +24,17 @@
 
         <q-input
           filled
-          v-model="vault_engine"
-          label="Vault Secret Engine"
+          v-model="username"
+          label="Username"
+          lazy-rules
+          :rules="[ val => val && val.length > 0 || 'Please type something']"
+        />
+
+        <q-input
+          filled
+          v-model="password"
+          label="Password"
+          type="password"
           lazy-rules
           :rules="[ val => val && val.length > 0 || 'Please type something']"
         />
@@ -41,34 +58,52 @@ export default {
   },
   data () {
     return {
-      vault_addr: '',
-      vault_engine: ''
+      name: '',
+      vaultAddr: '',
+      username: '',
+      password: '',
+      makeDefault: this.$store.state.settings.vaults.length > 0,
+      importEngines: true
     }
   },
   methods: {
     do_setup () {
-      console.log('do setup')
-      // var settings = {
-      //   vaultAddr: this.vault_addr,
-      //   vaultEngine: this.vault_engine
-      // }
-      var settings = {
-        vaultAddr: 'https://vault.tiagoposse.com',
-        vaultEngine: 'kv'
-      }
+      dbAPI.configureVault({
+        username: this.username,
+        address: this.vaultAddr,
+        password: this.password,
+        makeDefault: this.makeDefault,
+        name: this.name,
+        importEngines: this.importEngines,
+        onSuccess: (data) => {
+          this.$store.dispatch('settings/setVaults', this.$store.state.settings.vaults.slice().concat([data]))
+          this.$store.dispatch('settings/loginWithVault', data)
 
-      dbAPI.createSettings({
-        ...settings,
-        onSuccess: () => {
-          console.log('SUCCESS:')
-          this.$store.dispatch('settings/setInitSettings', settings)
-          this.$router.push('/login').catch('Error going from setup to login')
+          var engine = 0
+          for (var i = 0; i < data.engines.length; i++) {
+            if (data.engines[i].isDefault) {
+              engine = data.engines[i].id
+              break
+            }
+          }
+
+          this.$router.push('/' + data.id + '/' + engine + '/secrets').catch(() => console.log('Error going from setup to secrets'))
+        },
+        onError: () => {
+          this.$q.notify({
+            color: 'negative',
+            position: 'top',
+            message: 'Error setting up vault',
+            icon: 'report_problem'
+          })
         }
       })
     },
     reset () {
-      this.vault_addr = ''
-      this.vault_engine = ''
+      this.vaultAddr = ''
+      this.username = ''
+      this.password = ''
+      this.makeDefault = this.$store.state.settings.vaults.length > 0
     }
   }
 }

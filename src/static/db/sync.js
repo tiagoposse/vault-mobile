@@ -1,17 +1,21 @@
-import vault from 'src/static/vault'
+import vaultAPI from 'src/static/vault'
 import basics from './basics'
 import secretsDB from './secrets'
 
-function sync ({ onSuccess, onError, lastSyncTime }) {
+function sync ({ vault, onSuccess, onError, lastSyncTime }) {
   console.log('SYNC')
   function _updateSyncTime () {
     var lastSync = Date.now()
 
     basics.update({
-      table: 'settings',
+      table: 'vaults',
       values: {
         lastSyncTime: lastSync
       },
+      whereFields: [{
+        field: 'id',
+        value: vault.id
+      }],
       onSuccess: () => { onSuccess(lastSync) },
       onError
     })
@@ -19,18 +23,21 @@ function sync ({ onSuccess, onError, lastSyncTime }) {
 
   readSecretsWithValues({
     onError,
+    engine: vault.engine.id,
     onSuccess: (localSecrets) => {
       console.log('Return from read')
       console.log(localSecrets)
 
-      vault.getAllSecrets((remoteSecrets) => {
+      vaultAPI.getSecretsForKV(Object.assign({}, vault, { engine: vault.engine.name }), (remoteSecrets) => {
         console.log('return from vault')
         console.log(remoteSecrets)
 
+        var localVaultData = Object.assign({}, vault, { engine: vault.engine.id })
         _recursiveCompareVaultSecretsWithLocal(
+          localVaultData,
           remoteSecrets,
           localSecrets,
-          () => _recursiveCompareLocalSecretsWithVault(localSecrets, remoteSecrets, _updateSyncTime, onError, lastSyncTime),
+          () => _recursiveCompareLocalSecretsWithVault(localVaultData, localSecrets, remoteSecrets, _updateSyncTime, onError, lastSyncTime),
           onError,
           lastSyncTime
         )
@@ -39,7 +46,7 @@ function sync ({ onSuccess, onError, lastSyncTime }) {
   })
 }
 
-function readSecretsWithValues ({ onSuccess, onError }) {
+function readSecretsWithValues ({ engine, onSuccess, onError }) {
   function _getValuesForItems (toProcess, processed, fn) {
     var keys = Object.keys(toProcess)
     if (keys.length === 0) {
@@ -63,15 +70,14 @@ function readSecretsWithValues ({ onSuccess, onError }) {
   }
 
   secretsDB.listSecrets({
+    engine,
     onError,
     includeDestroyed: true,
-    onSuccess: (secrets) => {
-      _getValuesForItems(secrets, {}, _getValuesForItems)
-    }
+    onSuccess: (secrets) => _getValuesForItems(secrets, {}, _getValuesForItems)
   })
 }
 
-function _recursiveCompareLocalSecretsWithVault (localSecrets, remoteSecrets, onSuccess, onError, lastSyncTime) {
+function _recursiveCompareLocalSecretsWithVault (vault, localSecrets, remoteSecrets, onSuccess, onError, lastSyncTime) {
   function _removeSecrets (ids, fn, onSuccess) {
     if (ids.length === 0) {
       onSuccess()
@@ -94,7 +100,7 @@ function _recursiveCompareLocalSecretsWithVault (localSecrets, remoteSecrets, on
       return
     }
 
-    vault.writeOrUpdateSecret(secrets[0], (resp) => {
+    vaultAPI.writeOrUpdateSecret(vault, secrets[0], (resp) => {
       secrets.shift()
       if (secrets.length > 0) {
         fn(secrets, fn, onSuccess)
@@ -118,13 +124,10 @@ function _recursiveCompareLocalSecretsWithVault (localSecrets, remoteSecrets, on
     }
   }
 
-  console.log('add:')
-  console.log(addSecrets.slice())
-
   _removeSecrets(delIDS, _removeSecrets, () => _addSecrets(addSecrets, _addSecrets, onSuccess))
 }
 
-function _recursiveCompareVaultSecretsWithLocal (remoteSecrets, localSecrets, onSuccess, onError, lastSyncTime) {
+function _recursiveCompareVaultSecretsWithLocal (vault, remoteSecrets, localSecrets, onSuccess, onError, lastSyncTime) {
   var values = []
   for (const path in remoteSecrets) {
     values.push({
@@ -148,12 +151,11 @@ function _recursiveCompareVaultSecretsWithLocal (remoteSecrets, localSecrets, on
     values.shift()
 
     if (!Object.prototype.hasOwnProperty.call(localSecrets, item.path)) {
-      // console.log('insert:')
-      // console.log(item.path)
+      item.metadata.engine = vault.engine
+
       // secret does not exist locally, insert
       secretsDB.insertSecret({
         secret: {
-          path: item.path,
           ...item
         },
         onSuccess: () => fn(values, localSecrets, fn),
@@ -162,7 +164,7 @@ function _recursiveCompareVaultSecretsWithLocal (remoteSecrets, localSecrets, on
     } else {
       // secret exists locally, compare versions and whether it's to destroy remotely
       if (localSecrets[item.path].metadata.destroyed === 1) {
-        vault.deleteSecret(item.path, (resp) => {
+        vaultAPI.deleteSecret(vault, item.path, () => {
           fn(values, localSecrets, fn)
         }, () => {
           console.log('ERROR ON DELETESECRET')
@@ -177,7 +179,7 @@ function _recursiveCompareVaultSecretsWithLocal (remoteSecrets, localSecrets, on
           lastSyncTime
         })
       } else if (item.metadata.version < localSecrets[item.path].metadata.version) {
-        vault.writeOrUpdateSecret(localSecrets[item.path], (resp) => {
+        vaultAPI.writeOrUpdateSecret(localSecrets[item.path], () => {
           fn(values, localSecrets, fn)
         }, () => {
           console.log('ERROR ON WRITEORUPDATE')

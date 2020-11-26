@@ -1,15 +1,21 @@
 <template>
   <q-page>
-    <div class="row full-width q-gutter-md">
-      <q-form @submit="saveChanges" class="col col-4 q-gutter-md">
+    <q-expansion-item default-opened label="General Settings">
+      <q-form @submit="saveGeneralChanges" class="col sm-col-4 q-gutter-xs">
         <q-input v-model="vault_addr" label="Vault address" stack-label />
-        <q-input v-model="vault_engine" label="Secret Engine" stack-label />
-        <q-input v-model="sync_period" label="Period of sync" stack-label />
-        <q-input v-model="biometricEnabled" :label="'Biometric login is: ' + biometricEnabled" stack-label readonly />
-        <q-btn v-if="!biometricEnabled" label="Enable biometric login" @click="registerBiometricLogin" />
-        <q-btn v-if="hasChanges" label="Save Changes" @click="saveChanges" />
+        <q-input v-model="username" label="Vault username" stack-label />
+        <q-input v-model="sync_period" type="number" label="Period of sync" stack-label />
+        <q-btn v-if="hasGeneralChanges" label="Save Changes" @click="saveGeneralChanges" />
       </q-form>
-    </div>
+    </q-expansion-item>
+    <q-expansion-item default-opened label="Security">
+        <q-input type="password" filled label="Password" />
+        <q-btn label="Change password" @click="changePassword" v-if="password !== ''" />
+        <div>Biometric login is: {{ biometricEnabled === 1 }}</div>
+        <q-btn v-if="!biometricEnabled" label="Enable biometric login" @click="registerBiometricLogin" />
+        <q-btn v-else label="Disable biometric login" @click="disableBiometricLogin" />
+        <q-btn label="Rekey vault" @click="rekey" />
+    </q-expansion-item>
   </q-page>
 </template>
 
@@ -19,31 +25,56 @@ import dbAPI from 'src/static/db/index'
 export default {
   name: 'PageIndex',
   data () {
+    var currentVault = this.$store.getters['settings/getCurrentVault']
+
     return {
-      vault_addr: this.$store.state.settings.vault_addr,
-      vault_engine: this.$store.state.settings.vault_engine,
-      sync_period: this.$store.state.settings.sync_period,
-      biometricEnabled: this.$store.state.settings.biometric_login_enabled
+      currentVault,
+      vault_addr: currentVault.address,
+      username: currentVault.username,
+      password: '',
+      sync_period: currentVault.sync_period,
+      biometricEnabled: currentVault.biometricLogin
     }
   },
   computed: {
-    hasChanges () {
-      return this.vault_addr !== this.$store.state.settings.vault_addr ||
-        this.vault_engine !== this.$store.state.settings.vault_engine ||
-        this.sync_period !== this.$store.state.settings.sync_period
+    hasGeneralChanges () {
+      return this.vault_addr !== this.currentVault.address ||
+        this.sync_period !== this.currentVault.syncPeriod
     }
   },
   methods: {
-    saveChanges () {
+    changePassword () {
+      return this.vault_addr !== this.currentVault.address ||
+        this.sync_period !== this.currentVault.syncPeriod
+    },
+    rekey () {
+      this.$q.dialog({
+        title: 'Confirm Vault rekey operation',
+        message: 'Are you sure you want to rekey vault ' + this.currentVault.name + '? This operation cannot be undone.',
+        cancel: true,
+        persistent: true
+      }).onOk(() => {
+        dbAPI.rekeyVault({
+          vault: this.currentVault.id,
+          onSuccess: () => {
+            this.$q.notify({
+              color: 'positive',
+              position: 'top',
+              message: 'Vault ' + this.currentVault.name + ' rekeyed successfully. ',
+              icon: 'success'
+            })
+          },
+          onError: (err) => { console.log('Error rekeying vault: ' + this.currentVault.name + ': ', err) }
+        })
+      })
+    },
+    saveGeneralChanges () {
       var body = {}
-      if (this.vault_addr !== this.$store.state.settings.vault_addr) {
-        body.vault_addr = this.vault_addr
+      if (this.vault_addr !== this.currentVault.address) {
+        body.vaultAddr = this.vault_addr
       }
-      if (this.vault_engine !== this.$store.state.settings.vault_engine) {
-        body.vault_engine = this.vault_engine
-      }
-      if (this.sync_period !== this.$store.state.settings.sync_period) {
-        body.sync_period = this.sync_period
+      if (this.sync_period !== this.currentVault.syncPeriod) {
+        body.syncPeriod = this.sync_period
       }
 
       if (Object.keys(body).length > 0) {
@@ -62,34 +93,74 @@ export default {
         })
       }
     },
-    registerBiometricLogin () {
-      var fingerprintEncryptionKey = dbAPI.generateEncryptionKey()
-      console.log(fingerprintEncryptionKey)
-      window.Fingerprint.registerBiometricSecret({
-        title: 'Vault mobile',
-        description: 'Register your finger',
-        secret: fingerprintEncryptionKey,
-        invalidateOnEnrollment: true,
-        disableBackup: true // always disabled on Android
-      }, (data) => {
-        dbAPI.registerFingerprint(
-          fingerprintEncryptionKey,
-          this.$store.state.global.encryption_key,
-          this.$store.state.global.user,
-          () => {
-            this.$store.dispatch('settings/setBiometricLoginEnabled')
-            this.biometricEnabled = true
-          },
-          () => {}
-        )
-      }, (err) => {
+    disableBiometricLogin () {
+      dbAPI.disableBiometricLogin(this.currentVault.id, () => {
+        this.$q.notify({
+          color: 'positive',
+          position: 'top',
+          message: 'Biometric login disabled',
+          icon: 'check'
+        })
+        this.$store.dispatch('settings/setBiometricDisabled')
+      }, () => {
         this.$q.notify({
           color: 'negative',
           position: 'top',
-          message: 'Error registering fingerprint',
-          icon: 'report_problem'
+          message: 'Error disabling biometrics',
+          icon: 'check'
         })
-        console.log('error register', err)
+      })
+    },
+    registerBiometricLogin () {
+      var fingerprintSecret = dbAPI.generateEncryptionKey()
+
+      this.$q.dialog({
+        title: 'Password required',
+        message: 'Please insert your password',
+        prompt: { model: '' },
+        cancel: true,
+        persistent: true
+      }).onOk(data => {
+        window.Fingerprint.registerBiometricSecret({
+          title: 'Vault mobile',
+          description: 'Register your finger',
+          secret: fingerprintSecret,
+          invalidateOnEnrollment: true,
+          disableBackup: true // always disabled on Android
+        }, () => {
+          dbAPI.registerFingerprint({
+            vaultId: this.currentVault.id,
+            fingerprintSecret,
+            password: data,
+            encryptionKey: this.currentVault.encryptionKey,
+            onSuccess: () => {
+              this.$store.dispatch('settings/setBiometricLoginEnabled')
+              this.biometricEnabled = 1
+            },
+            onError: (err) => {
+              this.$q.notify({
+                color: 'negative',
+                position: 'top',
+                message: 'Error registering fingerprint',
+                icon: 'report_problem'
+              })
+
+              console.log(err)
+            }
+          })
+        }, (err) => {
+          this.$q.notify({
+            color: 'negative',
+            position: 'top',
+            message: 'Error registering fingerprint',
+            icon: 'report_problem'
+          })
+          console.log('error register', err)
+        })
+      }).onCancel(() => {
+        // console.log('>>>> Cancel')
+      }).onDismiss(() => {
+        // console.log('I am triggered on both OK and Cancel')
       })
     }
   }

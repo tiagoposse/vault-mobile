@@ -43,26 +43,44 @@
 
 <script>
 import SecretItem from 'components/SecretItem'
-import { copyToClipboard } from 'quasar'
+import { copyToClipboard, Notify } from 'quasar'
 import dbAPI from 'src/static/db/index'
+
+function requestSecrets (engine, onSuccess, onError) {
+  dbAPI.listSecrets({
+    engine: engine,
+    onSuccess,
+    onError: () => {
+      Notify({
+        color: 'negative',
+        position: 'top',
+        message: 'Error retrieving local secrets',
+        icon: 'report_problem'
+      })
+      onError()
+    }
+  })
+}
 
 export default {
   components: {
     SecretItem
   },
-  created () {
-    console.log('Sync:')
-    dbAPI.sync({
-      onSuccess: (syncTime) => {
-        this.$store.dispatch('settings/updateLastSyncTime', syncTime)
-        console.log('sync ok')
-        this.requestSecrets()
-      },
-      onError: () => {
-        console.log('sync fail')
-        this.requestSecrets()
-      },
-      lastSyncTime: this.$store.state.settings.last_sync_time
+  beforeRouteEnter (to, from, next) {
+    requestSecrets(to.params.engine,
+      (secrets) => {
+        next(vm => { vm.secrets = secrets })
+      }, () => {
+        next()
+      }
+    )
+  },
+  beforeRouteUpdate (to, from, next) {
+    requestSecrets(to.params.engine, (secrets) => {
+      this.secrets = secrets
+      next()
+    }, () => {
+      next()
     })
   },
   data () {
@@ -70,6 +88,9 @@ export default {
       secrets: {},
       filter: ''
     }
+  },
+  created () {
+    this.synchronize()
   },
   computed: {
     secretList () {
@@ -91,6 +112,28 @@ export default {
     }
   },
   methods: {
+    synchronize () {
+      var currentVault = this.$store.getters['settings/getCurrentVault']
+
+      if (!currentVault.syncedThisSession) {
+        dbAPI.sync({
+          onSuccess: (syncTime) => {
+            this.$store.dispatch('settings/updateLastSyncTime', syncTime)
+            this.$store.dispatch('settings/setVaultSynced')
+            requestSecrets(this.$route.params.engine, (secrets) => { this.secrets = secrets }, () => {})
+          },
+          onError: () => {
+            console.log('sync fail')
+          },
+          lastSyncTime: this.$store.state.settings.last_sync_time,
+          vault: {
+            address: currentVault.address,
+            engine: this.$store.getters['settings/getCurrentEngine'],
+            token: currentVault.auth_token
+          }
+        })
+      }
+    },
     updateSecret (item) {
       var newSecrets = Object.assign({}, this.secrets)
       newSecrets[item.path] = item
@@ -100,21 +143,6 @@ export default {
       var newSecrets = Object.assign({}, this.secrets)
       delete newSecrets[path]
       this.secrets = newSecrets
-    },
-    requestSecrets () {
-      dbAPI.listSecrets({
-        onSuccess: (secrets) => {
-          this.secrets = secrets
-        },
-        onError: () => {
-          this.$q.notify({
-            color: 'negative',
-            position: 'top',
-            message: 'Error retrieving local secrets',
-            icon: 'report_problem'
-          })
-        }
-      })
     },
     startAddSecret () {
       this.$refs.secretDialog.startAdd({})

@@ -1,11 +1,9 @@
 
 import syncDB from './sync'
-import usersDB from './users'
-import settingsDB from './settings'
+import vaultsDB from './vaults'
 import secretsDB from './secrets'
 import basicsDB from './basics'
 import utils from './utils'
-import vault from 'src/static/vault'
 import tables from './tables'
 
 function open (appState) {
@@ -15,30 +13,22 @@ function open (appState) {
   })
 
   utils.initUtils(db)
-  vault.init(appState)
 }
 
 var populateDB = utils.transactionDecorator(({ tx }) => {
   tx.executeSql('PRAGMA foreign_keys=ON ')
 
-  // tx.executeSql('UPDATE settings set lastSyncTime = 0')
-  // tx.executeSql('DROP TABLE secret_values')
-  // tx.executeSql('DROP TABLE secrets')
-  // tx.executeSql('DROP TABLE settings')
-  // tx.executeSql('DROP TABLE users')
-  // tx.executeSql('DROP TABLE fingerprints')
+  var fieldStrings = getTableString(tables.vaults)
+  tx.executeSql('CREATE TABLE IF NOT EXISTS vaults (' + fieldStrings.join(', ') + ')')
 
-  var fieldStrings = getTableString(tables.users)
-  tx.executeSql('CREATE TABLE IF NOT EXISTS users (' + fieldStrings.join(', ') + ')')
+  fieldStrings = getTableString(tables.engines)
+  tx.executeSql('CREATE TABLE IF NOT EXISTS engines (' + fieldStrings.join(', ') + ')')
 
   fieldStrings = getTableString(tables.secrets)
   tx.executeSql('CREATE TABLE IF NOT EXISTS secrets (' + fieldStrings.join(', ') + ')')
 
   fieldStrings = getTableString(tables.secret_values)
   tx.executeSql('CREATE TABLE IF NOT EXISTS secret_values (' + fieldStrings.join(', ') + ')')
-
-  fieldStrings = getTableString(tables.settings)
-  tx.executeSql('CREATE TABLE IF NOT EXISTS settings (' + fieldStrings.join(', ') + ')')
 
   fieldStrings = getTableString(tables.fingerprints)
   tx.executeSql('CREATE TABLE IF NOT EXISTS fingerprints (' + fieldStrings.join(', ') + ')')
@@ -68,8 +58,8 @@ function getTableString (table) {
 
     if (fieldKeys.includes('primary_key') && table[keys[i]].primary_key) {
       initStr += ' primary key'
-      if (fieldKeys.includes('type') && table[keys[i]].primary_key === 'integer') {
-        initStr += ' auto increment'
+      if (fieldKeys.includes('type') && table[keys[i]].type === 'integer') {
+        initStr += ' autoincrement'
       }
     } else if (fieldKeys.includes('unique') && table[keys[i]].unique) {
       initStr += ' unique'
@@ -90,7 +80,6 @@ export default {
   ...syncDB,
   ...basicsDB,
   ...secretsDB,
-  ...settingsDB,
-  ...usersDB,
+  ...vaultsDB,
   ...utils
 }

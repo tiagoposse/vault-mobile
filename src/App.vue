@@ -1,6 +1,6 @@
 <template>
-  <div id="q-app" v-if="$store.state.settings.ready">
-    <router-view />
+  <div id="q-app">
+    <router-view v-if="$store.state.settings.ready" />
   </div>
 </template>
 <script>
@@ -8,25 +8,19 @@ import dbAPI from 'src/static/db/index'
 
 export default {
   name: 'App',
-  updated () {
-    console.log(this.$store.state.settings.ready)
-  },
   created () {
-    var store = this.$store
-    var router = this.$router
-
-    document.addEventListener('deviceready', function () {
-      dbAPI.open(store.state)
+    document.addEventListener('deviceready', () => {
+      dbAPI.open(this.$store.state)
       dbAPI.populateDB()
-      dbAPI.readSettings({
+      dbAPI.listConfiguredVaults({
         onSuccess: (result) => {
-          if (!result) {
-            router.push('/setup').catch((err) => {
-              console.log('Redirecting to setup unsuccessful: ' + err)
-            })
+          if (result.length > 0) {
+            this.$store.dispatch('settings/setVaults', result)
           } else {
-            store.dispatch('settings/setInitSettings', result)
+            this.$router.push('/setup').catch((err) => console.log(err))
           }
+
+          this.$store.dispatch('settings/setReady')
         }
       })
     })

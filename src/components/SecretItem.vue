@@ -195,7 +195,8 @@ export default {
       }
 
       var metadata = {
-        version: 1
+        version: 1,
+        engine: this.$route.params.engine
       }
 
       var newItem = Object.assign({}, this.tempItem, { metadata })
@@ -206,7 +207,7 @@ export default {
 
       dbAPI.insertSecret({
         secret: newItem,
-        onSuccess: () => {
+        onSuccess: (id) => {
           this.$q.notify({
             color: 'positive',
             position: 'top',
@@ -214,6 +215,8 @@ export default {
             icon: 'success'
           })
 
+          newItem.id = id
+          console.log(newItem)
           this.updateSecretInList(newItem)
           this.resetEdit()
           this.isOpen = false

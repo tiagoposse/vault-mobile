@@ -5,7 +5,8 @@ var secrets = {
     type: 'integer'
   },
   path: {
-    encrypt: true
+    encrypt: true,
+    not_null: true
   },
   version: {
     type: 'integer',
@@ -26,6 +27,13 @@ var secrets = {
     type: 'integer',
     default: 0,
     encrypt: true
+  },
+  engine: {
+    foreign_key: {
+      table: 'engines',
+      field: 'id'
+    },
+    not_null: true
   }
 }
 
@@ -48,23 +56,54 @@ var secretValues = {
   }
 }
 
-var settings = {
-  vaultAddr: {},
-  vaultEngine: {},
+var engines = {
+  id: {
+    primary_key: true,
+    type: 'integer'
+  },
+  vault: {
+    foreign_key: {
+      table: 'vaults',
+      field: 'id'
+    },
+    type: 'integer'
+  },
+  name: {
+    not_null: true
+  },
+  isDefault: {
+    type: 'integer', // bool
+    default: 0
+  }
+}
+
+var vaults = {
+  id: {
+    primary_key: true,
+    type: 'integer'
+  },
+  name: {
+    not_null: true,
+    unique: true
+  },
+  address: {
+    not_null: true,
+    unique: true
+  },
   syncPeriod: {
-    type: 'INT',
+    type: 'integer',
     default: 0
   },
   lastSyncTime: {
     type: 'long',
     default: 0
-  }
-}
-
-var users = {
+  },
+  offlineMode: {
+    type: 'integer', // bool
+    default: 1
+  },
   username: {
-    unique: true,
-    primary_key: true
+    not_null: true
   },
   password: {
     not_null: true
@@ -76,7 +115,11 @@ var users = {
     not_null: true
   },
   biometricLogin: {
-    type: 'integer',
+    type: 'integer', // bool
+    default: 0
+  },
+  isDefault: {
+    type: 'integer', // bool
     default: 0
   }
 }
@@ -86,17 +129,17 @@ var fingerprints = {
     primary_key: true,
     type: 'integer'
   },
-  user: {
+  vault: {
     not_null: true,
     foreign_key: {
-      table: 'users',
-      field: 'username'
+      table: 'vaults',
+      field: 'id'
     }
   },
   encryptionKey: {
     not_null: true
   },
-  salt: {
+  vaultPassword: {
     not_null: true
   }
 }
@@ -104,7 +147,7 @@ var fingerprints = {
 export default {
   secrets,
   secret_values: secretValues,
-  settings,
   fingerprints,
-  users
+  vaults,
+  engines
 }

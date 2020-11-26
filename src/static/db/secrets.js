@@ -22,8 +22,8 @@ function getSecretValues ({ secretId, onSuccess, onError, tx }) {
   })
 }
 
-function listSecrets ({ tx, onSuccess, onError, includeDestroyed = false }) {
-  tx.executeSql('SELECT * FROM secrets', [], function (tx, rs) {
+function listSecrets ({ tx, engine, onSuccess, onError, includeDestroyed = false }) {
+  tx.executeSql('SELECT * FROM secrets where engine = ?', [engine], function (tx, rs) {
     var rows = {}
 
     for (var i = 0; i < rs.rows.length; i++) {
@@ -69,7 +69,7 @@ function insertSecret ({ secret, onSuccess, onError }) {
         secretId,
         newData: secret.data,
         oldData: {},
-        onSuccess,
+        onSuccess: () => onSuccess(secretId),
         onError
       })
     }

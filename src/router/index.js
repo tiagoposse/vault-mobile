@@ -27,7 +27,11 @@ export default function ({ store }) {
   })
 
   Router.beforeEach((to, from, next) => {
-    if (store.state.global.encryption_key !== '' || to.path === '/' || to.path === '/login' || to.path === '/setup') {
+    if (to.path !== from.path) {
+      next()
+    }
+
+    if (store.state.settings.loggedIn || to.path === '/' || to.path === '/login' || to.path === '/setup') {
       next()
     } else {
       next('/login')

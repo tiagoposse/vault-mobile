@@ -12,7 +12,7 @@
         />
 
         <q-toolbar-title>
-          Quasar App
+          {{ $store.getters['settings/getCurrentVault'].name }}
         </q-toolbar-title>
 
         <div>Sync: {{ formattedDate }}</div>
@@ -26,16 +26,24 @@
       content-class="bg-grey-1"
     >
       <q-list>
-        <q-item-label
-          header
-          class="text-grey-8"
-        >
-          Essential Links
-        </q-item-label>
+        <q-expansion-item
+            expand-separator
+            :label="vault"
+            v-for="(data, vault) in links"
+            :key="vault"
+            :value="openVault === vault"
+            :header-class="openVault === vault ? 'bg-primary' : 'bg-teal-4'">
+          <q-list>
+            <EssentialLink
+              v-for="link in data"
+              :key="link.title"
+              v-bind="link"
+            />
+          </q-list>
+        </q-expansion-item>
         <EssentialLink
-          v-for="link in essentialLinks"
-          :key="link.title"
-          v-bind="link"
+          title="Settings"
+          link="/settings"
         />
       </q-list>
     </q-drawer>
@@ -49,31 +57,34 @@
 <script>
 import EssentialLink from 'components/EssentialLink.vue'
 
-const linksData = [
-  {
-    title: 'Secrets',
-    icon: 'school',
-    link: '/'
-  },
-  {
-    title: 'Settings',
-    icon: 'gears',
-    link: '/settings'
-  }
-]
-
 export default {
   name: 'MainLayout',
   components: { EssentialLink },
   data () {
     return {
       leftDrawerOpen: false,
-      essentialLinks: linksData
+      openVault: this.$store.getters['settings/getCurrentVault'].name
     }
   },
   computed: {
+    links () {
+      var links = {}
+      for (var i = 0; i < this.$store.state.settings.vaults.length; i++) {
+        var vault = this.$store.state.settings.vaults[i]
+
+        links[vault.name] = []
+        for (var k = 0; k < vault.engines.length; k++) {
+          links[vault.name].push({
+            title: vault.engines[k].name,
+            link: '/' + vault.id + '/' + vault.engines[k].id + '/secrets'
+          })
+        }
+      }
+
+      return links
+    },
     formattedDate () {
-      var a = new Date(this.$store.state.settings.last_sync_time)
+      var a = new Date(this.$store.getters['settings/getCurrentVault'].lastSyncTime)
 
       // var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
       var year = a.getFullYear().toString().substring(2)
@@ -89,3 +100,9 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+  .active-link {
+    background-color: blue;
+  }
+</style>

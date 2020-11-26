@@ -1,5 +1,3 @@
-import store from '../store/index'
-
 const routes = [
   {
     path: '/login',
@@ -16,15 +14,11 @@ const routes = [
     ]
   },
   {
-    path: '/secrets',
+    path: '/:vault/:engine/secrets',
     component: () => import('layouts/MainLayout.vue'),
     children: [
       { path: '', component: () => import('pages/Secrets.vue') }
-    ],
-    beforeEnter (to, from, next) {
-      console.log('entering secrets')
-      next()
-    }
+    ]
   },
   {
     path: '/settings',
@@ -38,14 +32,14 @@ const routes = [
     component: () => import('layouts/UnauthenticatedLayout.vue'),
     children: [
       { path: '', component: () => import('pages/Setup.vue') }
-    ],
-    beforeEnter (to, from, next) {
-      if (store().getters['settings/isInitialized']) {
-        next('/')
-      } else {
-        next()
-      }
-    }
+    ]
+    // beforeEnter (to, from, next) {
+    //   if (store().getters['settings/isInitialized']) {
+    //     next('/')
+    //   } else {
+    //     next()
+    //   }
+    // }
   },
 
   // Always leave this as last one,
