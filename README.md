@@ -8,6 +8,8 @@ The app can work in 2 ways:
 
 In both modes the Vault instance is the source of truth.
 
+- still in dev
+
 ## Install the dependencies
 ```bash
 npm install
