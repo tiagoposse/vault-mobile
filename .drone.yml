@@ -1,0 +1,26 @@
+---
+kind: pipeline
+type: kubernetes
+name: master-build
+
+trigger:
+  branch:
+    - master
+
+steps:
+  - name: npm build
+    image: node
+    commands:
+      - npm install
+      - npm test
+
+  - name: Generate keystore & sign jar
+    image: openjdk8
+    commands:
+      - keytool -genkey -v -keystore vault-mobile.keystore -alias vault-mobile -keyalg RSA -keysize 2048 -validity 10000
+      - jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore vault-mobile.keystore vault-mobile-unsigned.apk vault-mobile
+
+  - name: Align the jar
+    image: registry.tiagoposse.com/zipalign
+    commands:
+      - zipalign -v 4 vault-mobile-unsigned.apk vault-mobile.apk
